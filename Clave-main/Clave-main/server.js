@@ -108,8 +108,8 @@ app.post('/api/register', async (req, res) => {
 });
 
 // --- LOGIN ---
-app.post('/api/login', async (req, res) => {
-    const { email, password } = req.body;
+    app.post('/api/login', async (req, res) => {
+        const { email, password } = req.body;
 
     try {
         let user = await alunoRepo.buscarPorEmail(email);
@@ -127,6 +127,7 @@ app.post('/api/login', async (req, res) => {
         const hashNoBanco = user.obterSenhaHash ? user.obterSenhaHash() : user.senha_hash;
         const nomeUser = user.obterNome ? user.obterNome() : user.nome;
         const idUser = user.obterId ? user.obterId() : user.id;
+        const telefoneUser = user.obterTelefone ? user.obterTelefone() : user.telefone;
 
         if (hashNoBanco) {
             const senhaValida = await bcrypt.compare(password, hashNoBanco);
@@ -140,6 +141,7 @@ app.post('/api/login', async (req, res) => {
             name: nomeUser,
             email: email,
             type: type,
+            phone: telefoneUser,
             token: "jwt_simulado"
         });
 
@@ -147,7 +149,49 @@ app.post('/api/login', async (req, res) => {
         console.error(error);
         res.status(500).json({ error: 'Erro no login.' });
     }
-});
+    });
+
+    // --- PERFIL ---
+    app.put('/api/perfil', async (req, res) => {
+        const { userId, type, name, phone } = req.body;
+
+        if (!userId || !name) {
+            return res.status(400).json({ error: 'Dados obrigatórios não enviados.' });
+        }
+
+        try {
+            if (type === 'professor') {
+                const professor = await professorRepo.atualizarNome(userId, name);
+                if (!professor) {
+                    return res.status(404).json({ error: 'Professor não encontrado.' });
+                }
+
+                return res.json({
+                    id: professor.obterId ? professor.obterId() : professor.id,
+                    name: professor.obterNome ? professor.obterNome() : professor.nome,
+                    email: professor.obterEmail ? professor.obterEmail() : professor.email,
+                    type: 'professor',
+                    phone: phone || null
+                });
+            }
+
+            const aluno = await alunoRepo.atualizarContato(userId, name, phone || null);
+            if (!aluno) {
+                return res.status(404).json({ error: 'Aluno não encontrado.' });
+            }
+
+            res.json({
+                id: aluno.obterId ? aluno.obterId() : aluno.id,
+                name: aluno.obterNome ? aluno.obterNome() : aluno.nome,
+                email: aluno.obterEmail ? aluno.obterEmail() : aluno.email,
+                phone: aluno.obterTelefone ? aluno.obterTelefone() : aluno.telefone,
+                type: 'aluno'
+            });
+        } catch (error) {
+            console.error('Erro ao atualizar perfil:', error);
+            res.status(500).json({ error: 'Erro ao salvar perfil.' });
+        }
+    });
 
 // --- PAGAMENTO ---
 app.post('/api/payment', async (req, res) => {

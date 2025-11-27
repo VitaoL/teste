@@ -51,6 +51,19 @@ class ProfessorRepository {
         const row = rows[0];
         return new Professor(row.id, row.nome, row.email, row.instrumento || 'Instrumento', Number(row.preco_hora || 0), row.senha_hash || null);
     }
+
+    async atualizarNome(id, nome) {
+        const pool = Database.getPool();
+        const sql = 'UPDATE professor SET nome = $1 WHERE id = $2 RETURNING id, nome, email, instrumento, preco_hora';
+        const { rows } = await pool.query(sql, [nome, id]);
+
+        if (rows.length === 0) {
+            return null;
+        }
+
+        const row = rows[0];
+        return new Professor(row.id, row.nome, row.email, row.instrumento || 'Instrumento', Number(row.preco_hora || 0));
+    }
 }
 
 module.exports = ProfessorRepository;

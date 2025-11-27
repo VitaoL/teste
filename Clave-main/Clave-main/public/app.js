@@ -117,10 +117,7 @@ function bindEvents() {
   });
 
   document.querySelectorAll('.dash-tab').forEach(tab => tab.addEventListener('click', () => switchTab(tab)));
-  document.getElementById('form-dados').addEventListener('submit', (e) => {
-    e.preventDefault();
-    alert('Dados salvos localmente.');
-  });
+  document.getElementById('form-dados').addEventListener('submit', handleProfileSave);
 
   document.getElementById('login-form').addEventListener('submit', handleLogin);
   document.getElementById('register-form').addEventListener('submit', handleRegister);
@@ -269,6 +266,7 @@ function applyUser() {
     document.getElementById('dash-role').textContent = state.user.type === 'professor' ? 'Professor' : 'Aluno';
     document.getElementById('input-dash-name').value = state.user.name;
     document.getElementById('input-dash-email').value = state.user.email;
+    document.getElementById('input-dash-phone').value = state.user.phone || '';
     loadAgenda();
   } else {
     auth.style.display = 'flex';
@@ -327,6 +325,37 @@ async function handleRegister(e) {
   } catch (err) {
     console.error('Erro ao cadastrar no backend:', err);
     alert('Não foi possível criar sua conta. Por favor, revise os dados e tente novamente.');
+  }
+}
+
+async function handleProfileSave(e) {
+  e.preventDefault();
+  if (!state.user) {
+    alert('Faça login para salvar seus dados.');
+    openModal('login-modal');
+    return;
+  }
+
+  const name = document.getElementById('input-dash-name').value.trim();
+  const phone = document.getElementById('input-dash-phone').value.trim();
+
+  try {
+    const resp = await fetch('/api/perfil', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: state.user.id, type: state.user.type, name, phone })
+    });
+
+    if (!resp.ok) throw new Error('Falha ao salvar');
+
+    const data = await resp.json();
+    state.user = { ...state.user, name: data.name, email: data.email || state.user.email, phone: data.phone ?? phone };
+    localStorage.setItem('clave:user', JSON.stringify(state.user));
+    applyUser();
+    alert('Dados salvos com sucesso!');
+  } catch (err) {
+    console.error('Erro ao salvar dados:', err);
+    alert('Não foi possível salvar seus dados. Tente novamente.');
   }
 }
 
