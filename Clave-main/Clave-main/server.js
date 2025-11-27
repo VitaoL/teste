@@ -108,8 +108,8 @@ app.post('/api/register', async (req, res) => {
 });
 
 // --- LOGIN ---
-app.post('/api/login', async (req, res) => {
-    const { email, password } = req.body;
+    app.post('/api/login', async (req, res) => {
+        const { email, password } = req.body;
 
     try {
         let user = await alunoRepo.buscarPorEmail(email);
@@ -127,6 +127,7 @@ app.post('/api/login', async (req, res) => {
         const hashNoBanco = user.obterSenhaHash ? user.obterSenhaHash() : user.senha_hash;
         const nomeUser = user.obterNome ? user.obterNome() : user.nome;
         const idUser = user.obterId ? user.obterId() : user.id;
+        const telefoneUser = user.obterTelefone ? user.obterTelefone() : user.telefone;
 
         if (hashNoBanco) {
             const senhaValida = await bcrypt.compare(password, hashNoBanco);
@@ -140,6 +141,7 @@ app.post('/api/login', async (req, res) => {
             name: nomeUser,
             email: email,
             type: type,
+            phone: telefoneUser,
             token: "jwt_simulado"
         });
 
@@ -147,11 +149,53 @@ app.post('/api/login', async (req, res) => {
         console.error(error);
         res.status(500).json({ error: 'Erro no login.' });
     }
-});
+    });
+
+    // --- PERFIL ---
+    app.put('/api/perfil', async (req, res) => {
+        const { userId, type, name, phone } = req.body;
+
+        if (!userId || !name) {
+            return res.status(400).json({ error: 'Dados obrigatórios não enviados.' });
+        }
+
+        try {
+            if (type === 'professor') {
+                const professor = await professorRepo.atualizarNome(userId, name);
+                if (!professor) {
+                    return res.status(404).json({ error: 'Professor não encontrado.' });
+                }
+
+                return res.json({
+                    id: professor.obterId ? professor.obterId() : professor.id,
+                    name: professor.obterNome ? professor.obterNome() : professor.nome,
+                    email: professor.obterEmail ? professor.obterEmail() : professor.email,
+                    type: 'professor',
+                    phone: phone || null
+                });
+            }
+
+            const aluno = await alunoRepo.atualizarContato(userId, name, phone || null);
+            if (!aluno) {
+                return res.status(404).json({ error: 'Aluno não encontrado.' });
+            }
+
+            res.json({
+                id: aluno.obterId ? aluno.obterId() : aluno.id,
+                name: aluno.obterNome ? aluno.obterNome() : aluno.nome,
+                email: aluno.obterEmail ? aluno.obterEmail() : aluno.email,
+                phone: aluno.obterTelefone ? aluno.obterTelefone() : aluno.telefone,
+                type: 'aluno'
+            });
+        } catch (error) {
+            console.error('Erro ao atualizar perfil:', error);
+            res.status(500).json({ error: 'Erro ao salvar perfil.' });
+        }
+    });
 
 // --- PAGAMENTO ---
 app.post('/api/payment', async (req, res) => {
-    const { teacherId, date, time, price, studentId } = req.body; 
+    const { teacherId, date, time, price, studentId } = req.body;
 
     try {
         // Cria objeto simples para salvar (supondo que AulaRepository aceite objeto simples)
@@ -168,6 +212,27 @@ app.post('/api/payment', async (req, res) => {
     } catch (error) {
         console.error("Erro ao agendar:", error);
         res.status(500).json({ error: "Erro ao processar agendamento." });
+    }
+});
+
+// --- AGENDA ---
+app.get('/api/aulas', async (req, res) => {
+    const { userId, type } = req.query;
+
+    if (!userId) {
+        return res.status(400).json({ error: 'userId é obrigatório' });
+    }
+
+    try {
+        const id = Number.parseInt(userId, 10);
+        const aulas = type === 'professor'
+            ? await aulaRepo.listarPorProfessor(id)
+            : await aulaRepo.listarPorAluno(id);
+
+        res.json(aulas);
+    } catch (error) {
+        console.error('Erro ao buscar aulas:', error);
+        res.status(500).json({ error: 'Erro ao buscar aulas.' });
     }
 });
 

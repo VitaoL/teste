@@ -35,7 +35,8 @@ const state = {
   user: null,
   teachers: [],
   selected: null,
-  filter: ''
+  filter: '',
+  agenda: []
 };
 
 const els = {};
@@ -66,6 +67,8 @@ function cacheElements() {
   els.bookingPrice = document.getElementById('booking-price');
   els.bookingForm = document.getElementById('booking-form');
   els.dashboard = document.getElementById('dashboard');
+  els.agendaList = document.getElementById('agenda-list');
+  els.agendaEmpty = document.getElementById('agenda-empty');
 }
 
 function bindEvents() {
@@ -114,10 +117,7 @@ function bindEvents() {
   });
 
   document.querySelectorAll('.dash-tab').forEach(tab => tab.addEventListener('click', () => switchTab(tab)));
-  document.getElementById('form-dados').addEventListener('submit', (e) => {
-    e.preventDefault();
-    alert('Dados salvos localmente.');
-  });
+  document.getElementById('form-dados').addEventListener('submit', handleProfileSave);
 
   document.getElementById('login-form').addEventListener('submit', handleLogin);
   document.getElementById('register-form').addEventListener('submit', handleRegister);
@@ -250,6 +250,7 @@ function hydrateUser() {
   if (saved) {
     state.user = JSON.parse(saved);
     applyUser();
+    loadAgenda();
   }
 }
 
@@ -265,10 +266,14 @@ function applyUser() {
     document.getElementById('dash-role').textContent = state.user.type === 'professor' ? 'Professor' : 'Aluno';
     document.getElementById('input-dash-name').value = state.user.name;
     document.getElementById('input-dash-email').value = state.user.email;
+    document.getElementById('input-dash-phone').value = state.user.phone || '';
+    loadAgenda();
   } else {
     auth.style.display = 'flex';
     user.style.display = 'none';
     els.dashboard.style.display = 'none';
+    state.agenda = [];
+    renderAgenda();
   }
 }
 
@@ -283,13 +288,11 @@ async function handleLogin(e) {
     state.user = data;
     localStorage.setItem('clave:user', JSON.stringify(data));
     applyUser();
+    loadAgenda();
     closeModals();
   } catch (err) {
-    alert('Não foi possível entrar. Usando login local para testar.');
-    state.user = { id: Date.now(), name: email.split('@')[0], email, type: 'aluno' };
-    localStorage.setItem('clave:user', JSON.stringify(state.user));
-    applyUser();
-    closeModals();
+    console.error('Erro ao fazer login real:', err);
+    alert('Não foi possível entrar. Verifique seus dados ou tente novamente mais tarde.');
   }
 }
 
@@ -316,15 +319,43 @@ async function handleRegister(e) {
     state.user = data;
     localStorage.setItem('clave:user', JSON.stringify(data));
     applyUser();
+    loadAgenda();
     closeModals();
     alert('Conta criada com sucesso!');
   } catch (err) {
-    console.warn('Cadastro local por fallback:', err.message);
-    const localUser = { id: Date.now(), name: payload.name, email: payload.email, type };
-    state.user = localUser;
-    localStorage.setItem('clave:user', JSON.stringify(localUser));
+    console.error('Erro ao cadastrar no backend:', err);
+    alert('Não foi possível criar sua conta. Por favor, revise os dados e tente novamente.');
+  }
+}
+
+async function handleProfileSave(e) {
+  e.preventDefault();
+  if (!state.user) {
+    alert('Faça login para salvar seus dados.');
+    openModal('login-modal');
+    return;
+  }
+
+  const name = document.getElementById('input-dash-name').value.trim();
+  const phone = document.getElementById('input-dash-phone').value.trim();
+
+  try {
+    const resp = await fetch('/api/perfil', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: state.user.id, type: state.user.type, name, phone })
+    });
+
+    if (!resp.ok) throw new Error('Falha ao salvar');
+
+    const data = await resp.json();
+    state.user = { ...state.user, name: data.name, email: data.email || state.user.email, phone: data.phone ?? phone };
+    localStorage.setItem('clave:user', JSON.stringify(state.user));
     applyUser();
-    closeModals();
+    alert('Dados salvos com sucesso!');
+  } catch (err) {
+    console.error('Erro ao salvar dados:', err);
+    alert('Não foi possível salvar seus dados. Tente novamente.');
   }
 }
 
@@ -361,9 +392,56 @@ async function handleBooking(e) {
     alert('Aula agendada com sucesso!');
     closeModals();
     closeDrawer();
+    loadAgenda();
   } catch (err) {
-    alert('Agendamento salvo localmente para demonstração.');
-    closeModals();
-    closeDrawer();
+    console.error('Erro ao agendar aula:', err);
+    alert('Não foi possível concluir o agendamento. Tente novamente.');
   }
+}
+
+async function loadAgenda() {
+  if (!state.user) return;
+  try {
+    const query = new URLSearchParams({ userId: state.user.id, type: state.user.type });
+    const resp = await fetch(`/api/aulas?${query.toString()}`);
+    if (!resp.ok) throw new Error('Falha ao carregar agenda');
+    state.agenda = await resp.json();
+  } catch (err) {
+    console.error('Erro ao carregar agenda:', err);
+    state.agenda = [];
+  }
+  renderAgenda();
+}
+
+function renderAgenda() {
+  if (!els.agendaList || !els.agendaEmpty) return;
+
+  els.agendaList.innerHTML = '';
+
+  if (!state.agenda || state.agenda.length === 0) {
+    els.agendaEmpty.style.display = 'block';
+    return;
+  }
+
+  els.agendaEmpty.style.display = 'none';
+
+  state.agenda.forEach((aula) => {
+    const item = document.createElement('div');
+    item.className = 'agenda-item';
+
+    const data = new Date(aula.data_hora || aula.dataHora);
+    const formatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    const dataFormatada = isNaN(data.getTime()) ? '-' : formatter.format(data);
+
+    item.innerHTML = `
+      <div class="agenda-avatar">${(aula.professor_nome || aula.professorNome || 'A').charAt(0)}</div>
+      <div>
+        <div class="agenda-title">${aula.professor_nome || aula.professorNome || 'Professor'}</div>
+        <div class="agenda-meta">${dataFormatada} · ${aula.modalidade || 'online'}</div>
+      </div>
+      <div class="agenda-price">R$ ${Number(aula.valor_acordado || aula.valor || aula.preco || 0).toFixed(2)}</div>
+    `;
+
+    els.agendaList.appendChild(item);
+  });
 }
