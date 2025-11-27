@@ -5,14 +5,16 @@ class Professor {
     #instrumento;
     #precoHora;
     #avaliacoes;
+    #senhaHash;
 
-    constructor(id, nome, email, instrumento, precoHora) {
+    constructor(id, nome, email, instrumento, precoHora, senhaHash = null) {
         this.#id = id;
         this.#nome = nome;
         this.#email = email;
         this.#instrumento = instrumento;
         this.#precoHora = precoHora;
         this.#avaliacoes = [];
+        this.#senhaHash = senhaHash;
     }
 
     adicionarAvaliacao(avaliacao) {
@@ -37,6 +39,7 @@ class Professor {
     obterInstrumento() { return this.#instrumento; }
     obterPrecoHora() { return this.#precoHora; }
     obterAvaliacoes() { return this.#avaliacoes; }
+    obterSenhaHash() { return this.#senhaHash; }
 }
 
 module.exports = Professor;
