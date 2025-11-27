@@ -2,10 +2,14 @@ const Database = require('./database');
 const Aluno = require('../dominio/Aluno');
 
 class AlunoRepository {
-    async salvar(aluno) {
+    async salvar(alunoOuNome, email = null, senhaHash = null) {
         const pool = Database.getPool();
-        const sql = 'INSERT INTO aluno (nome, email) VALUES ($1, $2) RETURNING id';
-        const { rows } = await pool.query(sql, [aluno.obterNome(), aluno.obterEmail()]);
+        const aluno = alunoOuNome instanceof Aluno ? alunoOuNome : new Aluno(null, alunoOuNome, email);
+
+        const sql = 'INSERT INTO aluno (nome, email, senha_hash) VALUES ($1, $2, $3) RETURNING id';
+        const params = [aluno.obterNome(), aluno.obterEmail(), senhaHash];
+
+        const { rows } = await pool.query(sql, params);
         return rows[0].id;
     }
 

@@ -9,4 +9,8 @@ const pool = new Pool({
     port: 5432,
 });
 
-module.exports = pool;
+module.exports = {
+    getPool() {
+        return pool;
+    }
+};
