@@ -1,67 +1,45 @@
 class Professor {
-    // Atributos privados
     #id;
     #nome;
     #email;
+    #instrumento;
+    #precoHora;
+    #avaliacoes;
     #senhaHash;
-    #biografia;
-    #valorBaseAula;
-    #instrumentos;
-    #estilos;
-    #linkVideo; // Novo campo
-    #fotoUrl;   // Novo campo
 
-    // Construtor atualizado para receber video e foto
-    constructor(id, nome, email, senhaHash, biografia, valorBaseAula, instrumentos = [], estilos = [], linkVideo = null, fotoUrl = null) {
+    constructor(id, nome, email, instrumento, precoHora, senhaHash = null) {
         this.#id = id;
         this.#nome = nome;
         this.#email = email;
+        this.#instrumento = instrumento;
+        this.#precoHora = precoHora;
+        this.#avaliacoes = [];
         this.#senhaHash = senhaHash;
-        this.#biografia = biografia;
-        this.#valorBaseAula = valorBaseAula;
-        this.#instrumentos = instrumentos;
-        this.#estilos = estilos;
-        this.#linkVideo = linkVideo;
-        this.#fotoUrl = fotoUrl;
     }
 
-    // --- Métodos de Negócio ---
-    adicionarAulaNaAgenda(aula) {
-        // Lógica futura de agenda
+    adicionarAvaliacao(avaliacao) {
+        this.#avaliacoes.push(avaliacao);
     }
 
-    // --- Métodos de Acesso (Getters) ---
+    calcularNotaMedia() {
+        if (this.#avaliacoes.length === 0) {
+            return 0;
+        }
+        const soma = this.#avaliacoes.reduce((total, avaliacao) => total + avaliacao.obterNota(), 0);
+        return soma / this.#avaliacoes.length;
+    }
+
+    alterarNome(novoNome) {
+        this.#nome = novoNome;
+    }
+
     obterId() { return this.#id; }
     obterNome() { return this.#nome; }
     obterEmail() { return this.#email; }
+    obterInstrumento() { return this.#instrumento; }
+    obterPrecoHora() { return this.#precoHora; }
+    obterAvaliacoes() { return this.#avaliacoes; }
     obterSenhaHash() { return this.#senhaHash; }
-    obterBiografia() { return this.#biografia; }
-    obterValorBaseAula() { return this.#valorBaseAula; }
-    obterInstrumentos() { return this.#instrumentos; }
-    obterEstilos() { return this.#estilos; }
-    obterLinkVideo() { return this.#linkVideo; }
-    obterFotoUrl() { return this.#fotoUrl; }
-
-    // --- Serialização para o Frontend ---
-    // Transforma os dados privados em um objeto JSON público
-    toJSON() {
-        return {
-            id: this.#id,
-            name: this.#nome,
-            email: this.#email,
-            bio: this.#biografia,
-            price: Number(this.#valorBaseAula),
-            instruments: this.#instrumentos,
-            styles: this.#estilos,
-            // Campos visuais para o novo layout
-            link_video_demo: this.#linkVideo, 
-            image: this.#fotoUrl || `https://via.placeholder.com/300x200?text=${encodeURIComponent(this.#nome)}`,
-            
-            // Valores padrão para compatibilidade com o layout de cards
-            rating: 5.0, 
-            reviews: 0
-        };
-    }
 }
 
 module.exports = Professor;

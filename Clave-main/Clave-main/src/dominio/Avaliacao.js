@@ -1,35 +1,30 @@
 class Avaliacao {
     #id;
-    #aulaId;
-    #alunoId;
-    #professorId;
+    #alunoNome;
+    #professor;
     #nota;
     #comentario;
+    #aulaId;
 
-    constructor(id, aulaId, alunoId, professorId, nota, comentario) {
+    constructor(id, alunoNome, professor, nota, comentario, aulaId = null) {
+        if (nota < 1 || nota > 5) {
+            throw new Error('A nota da avaliação deve ser um valor entre 1 e 5.');
+        }
+
         this.#id = id;
-        this.#aulaId = aulaId;
-        this.#alunoId = alunoId;
-        this.#professorId = professorId;
+        this.#alunoNome = alunoNome;
+        this.#professor = professor;
         this.#nota = nota;
         this.#comentario = comentario;
+        this.#aulaId = aulaId;
     }
 
     obterId() { return this.#id; }
-    obterAulaId() { return this.#aulaId; }
-    obterAlunoId() { return this.#alunoId; }
-    obterProfessorId() { return this.#professorId; }
+    obterAlunoNome() { return this.#alunoNome; }
+    obterProfessor() { return this.#professor; }
     obterNota() { return this.#nota; }
     obterComentario() { return this.#comentario; }
-
-    toJSON() {
-        return {
-            id: this.#id,
-            nota: this.#nota,
-            comentario: this.#comentario,
-            aulaId: this.#aulaId
-        };
-    }
+    obterAulaId() { return this.#aulaId; }
 }
 
 module.exports = Avaliacao;

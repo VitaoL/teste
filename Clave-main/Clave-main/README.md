@@ -17,7 +17,41 @@ Este projeto foi desenvolvido como parte da avaliação da disciplina de Engenha
 - **Disciplina:** Engenharia de Software II
 - **Professor:** João Paulo Coelho Furtado
 
-## 3. Arquitetura e Tecnologias
+## 3. Como rodar o front-end e a API
+
+1. **Pré-requisitos**
+   - Node.js 18+
+   - PostgreSQL (opcional — o front usa dados fictícios caso o banco não esteja configurado)
+
+2. **Instale as dependências**
+   ```bash
+   npm install
+   ```
+   > Caso o registro npm corporativo bloqueie downloads, consulte o time de infraestrutura; o projeto também funciona em modo demo sem instalar pacotes extras.
+
+3. **Configure o banco (opcional)**
+   - Crie um banco local e ajuste o arquivo `.env` na raiz com:
+     ```
+     DB_PASSWORD=senha123
+     DB_USER=admin
+     DB_NAME=meubanco
+     DB_HOST=127.0.0.1
+     DB_PORT=5432
+     ```
+   - Rode os scripts `database/create_tables.sql` e `database/insert_data.sql` para popular as tabelas.
+
+4. **Suba o servidor + front-end**
+   ```bash
+   npm start
+   ```
+   Acesse http://localhost:3000 para abrir a SPA. Se o banco não responder, a vitrine usa uma lista de professores fictícia, mas todas as interações (busca, filtros, agendamento, login/cadastro) continuam disponíveis via fallback local.
+
+5. **APIs disponíveis**
+   - `GET /api/professores` e `GET /api/professores/:id` para listar/abrir perfis.
+   - `POST /api/register` e `POST /api/login` para cadastro/login (retornam fallback local se o banco não estiver ativo).
+   - `POST /api/payment` para registrar o agendamento de aula.
+
+## 4. Arquitetura e Tecnologias
 
 O projeto segue uma arquitetura em camadas para garantir a separação de responsabilidades:
 
