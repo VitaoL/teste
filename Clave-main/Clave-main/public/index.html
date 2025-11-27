@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clave - Encontre Professores de Música</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <header>
+        <div class="container header-content">
+            <a href="/" class="logo" style="text-decoration: none;">Clave<span>.</span></a>
+            <nav>
+                <ul>
+                    <li><a href="#" id="btn-dashboard" style="display: none;">Meu Painel</a></li>
+                </ul>
+                <div class="auth-buttons" id="auth-buttons">
+                    <button class="btn" id="login-btn">Entrar</button>
+                    <button class="btn btn-filled" id="register-btn">Criar Conta</button>
+                </div>
+                <div class="user-menu" id="user-menu" style="display: none;">
+                    <span id="user-name" style="font-weight: bold; margin-right: 10px;">Usuário</span>
+                    <button class="btn" id="logout-btn">Sair</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div id="home-section">
+            <section class="hero">
+                <div class="hero-overlay"></div>
+                <div class="hero-content">
+                    <h1>Aprenda música com quem entende.</h1>
+                    <p style="color: white; margin-bottom: 20px; font-size: 1.1rem;">Conecte-se com professores especialistas para aulas online ou presenciais.</p>
+                    <div class="search-bar">
+                        <input type="text" id="main-search" placeholder="Qual instrumento você quer aprender? (ex: Violão)">
+                        <button id="btn-search">Buscar</button>
+                    </div>
+                </div>
+            </section>
+
+            <div class="container">
+                <div class="categories">
+                    <span class="category-tag" data-filter="Violão">Violão</span>
+                    <span class="category-tag" data-filter="Piano">Piano</span>
+                    <span class="category-tag" data-filter="Guitarra">Guitarra</span>
+                    <span class="category-tag" data-filter="Bateria">Bateria</span>
+                    <span class="category-tag" data-filter="Canto">Canto</span>
+                    <span class="category-tag" data-filter="Teoria">Teoria</span>
+                    <span class="category-tag" data-filter="">Ver Todos</span>
+                </div>
+            </div>
+
+            <div class="container teachers-section">
+                <h2 class="section-title">Professores Disponíveis</h2>
+                <div class="cards-grid" id="teachers-list">
+                    <p>Carregando professores...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="teacher-profile-section" class="container" style="display: none; padding-top: 2rem;">
+            <button class="btn" onclick="showPage('home')" style="margin-bottom: 1rem;">&larr; Voltar</button>
+            <div class="profile-hero">
+                <div class="profile-sidebar">
+                    <img src="" alt="Professor" class="profile-img-large" id="profile-img">
+                    <h2 id="profile-name">Nome</h2>
+                    <div id="profile-instruments" style="color: #555; margin-bottom: 1rem; background: #f9f9f9; padding: 10px; border-radius: 4px;"></div>
+                    
+                    <button class="btn btn-filled" style="width: 100%;" id="btn-book-lesson">Agendar Aula</button>
+                    <p style="margin-top: 10px; font-size: 0.9rem;">Valor da hora/aula: <strong id="profile-price">R$ 00</strong></p>
+                </div>
+                <div class="profile-main">
+                    <h3>Sobre o Professor</h3>
+                    <p id="profile-bio" style="margin-bottom: 2rem; white-space: pre-line; line-height: 1.8;">Biografia...</p>
+                    
+                    <h3>Apresentação</h3>
+                    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; background: #000; margin-top: 1rem;">
+                        <iframe id="profile-video" src="" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" allowfullscreen title="Vídeo de Apresentação"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="dashboard-section" class="container" style="display: none; padding-top: 2rem; padding-bottom: 4rem;">
+            <div class="dashboard-container">
+                <aside class="dash-sidebar">
+                    <div class="dash-avatar"><i class="fas fa-user"></i></div>
+                    <h3 class="dash-name" id="dash-sidebar-name">Usuário</h3>
+                    <p class="dash-role" id="dash-sidebar-role">Aluno</p>
+                    <nav class="dash-menu">
+                        <button onclick="switchDashTab('dados')" class="active">Meus Dados</button>
+                        </nav>
+                </aside>
+                <main class="dash-content">
+                    <div id="tab-dados" class="dash-section active">
+                        <div class="dash-header"><h2>Meus Dados</h2></div>
+                        <form id="form-dados-pessoais">
+                            <div class="form-grid">
+                                <div class="input-group"><label>Nome</label><input type="text" id="dash-name"></div>
+                                <div class="input-group"><label>E-mail</label><input type="email" id="dash-email" disabled></div>
+                                <div class="input-group"><label>Telefone</label><input type="text" id="dash-telefone"></div>
+                            </div>
+                            <button class="btn btn-filled" style="margin-top: 1rem;">Salvar</button>
+                        </form>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal" id="login-modal">
+        <div class="modal-content">
+            <button class="close-modal">&times;</button>
+            <h2>Login</h2>
+            <form id="login-form">
+                <div class="form-group"><label>E-mail</label><input type="email" id="login-email" required></div>
+                <div class="form-group"><label>Senha</label><input type="password" id="login-password" required></div>
+                <button type="submit" class="btn btn-filled" style="width: 100%;">Entrar</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="register-modal">
+        <div class="modal-content">
+            <button class="close-modal">&times;</button>
+            <h2>Criar Conta</h2>
+            <form id="register-form">
+                <div class="form-group"><label>Nome</label><input type="text" id="register-name" required></div>
+                <div class="form-group"><label>E-mail</label><input type="email" id="register-email" required></div>
+                <div class="form-group"><label>Senha</label><input type="password" id="register-password" required></div>
+                <div class="form-group"><label>Sou:</label><select id="register-type"><option value="aluno">Aluno</option><option value="professor">Professor</option></select></div>
+                <button type="submit" class="btn btn-filled" style="width: 100%;">Cadastrar</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="payment-modal">
+        <div class="modal-content">
+            <button class="close-modal">&times;</button>
+            <h2>Agendar Aula</h2>
+            <p>Com: <strong id="pay-teacher-name"></strong></p>
+            <p>Valor: <strong id="pay-amount"></strong></p>
+            <form id="payment-form">
+                <div class="form-group"><label>Data</label><input type="date" id="pay-date" required></div>
+                <div class="form-group"><label>Horário</label><input type="time" id="pay-time" required></div>
+                <button type="submit" class="btn btn-filled" style="width: 100%;">Confirmar</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

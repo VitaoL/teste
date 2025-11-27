@@ -1,0 +1,425 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap');
+
+:root {
+    --primary: #1dbf73; /* Verde estilo Fiverr (ou mantenha seu azul: #4a6fa5) */
+    --primary-hover: #19a463;
+    --dark: #404145;
+    --light-gray: #f7f7f7;
+    --border: #e4e5e7;
+    --white: #ffffff;
+    --text-main: #62646a;
+    --shadow: 0 0.14px 2.29266px rgba(0,0,0,.032), 0 0.37px 4.42626px rgba(0,0,0,.048), 0 3px 7px rgba(0,0,0,.09);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Open Sans', sans-serif;
+    background-color: var(--white);
+    color: var(--dark);
+    line-height: 1.6;
+}
+
+h1, h2, h3, h4, .btn, nav a { font-family: 'Montserrat', sans-serif; }
+
+/* --- Navbar --- */
+header {
+    background-color: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--dark);
+    letter-spacing: -1px;
+}
+.logo span { color: var(--primary); } /* Ponto verde no logo */
+
+nav ul { display: flex; list-style: none; gap: 24px; align-items: center; }
+nav a { text-decoration: none; color: var(--text-main); font-weight: 600; transition: 0.3s; }
+nav a:hover { color: var(--primary); }
+
+.btn {
+    padding: 0.6rem 1.2rem;
+    border: 1px solid var(--primary);
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.3s;
+    background: transparent;
+    color: var(--primary);
+}
+
+.btn:hover { background-color: var(--primary); color: white; }
+.btn-filled { background-color: var(--primary); color: white; }
+.btn-filled:hover { background-color: var(--primary-hover); border-color: var(--primary-hover); }
+
+/* --- Hero Section (Busca Gigante) --- */
+.hero {
+    background-image: url('https://images.unsplash.com/photo-1511379938547-c1f69419868d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+    background-size: cover;
+    background-position: center;
+    height: 400px; /* Altura estilo Fiverr */
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Centraliza horizontalmente */
+    position: relative;
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 600px;
+    width: 100%;
+    text-align: left; /* Texto alinhado à esquerda dentro do container centralizado */
+}
+
+.hero h1 {
+    color: white;
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.search-bar {
+    display: flex;
+    background: white;
+    border-radius: 4px;
+    overflow: hidden;
+    height: 48px;
+}
+
+.search-bar input {
+    flex: 1;
+    border: none;
+    padding: 0 16px;
+    font-size: 1rem;
+    outline: none;
+}
+
+.search-bar button {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0 24px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* --- Categorias (Tags) --- */
+.categories {
+    padding: 1rem 0;
+    background: var(--light-gray);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.category-tag {
+    display: inline-block;
+    padding: 6px 12px;
+    margin-right: 10px;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    color: var(--text-main);
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: 0.2s;
+    cursor: pointer;
+}
+
+.category-tag:hover, .category-tag.active {
+    border-color: var(--dark);
+    color: var(--dark);
+    background: #e8e8e8;
+}
+
+/* --- Grid de Professores (Estilo Fiverr Gigs) --- */
+.teachers-section { padding: 3rem 0; }
+.section-title { font-size: 1.8rem; margin-bottom: 2rem; color: var(--dark); }
+
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 32px;
+}
+
+.gig-card {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    transition: 0.3s;
+    cursor: pointer;
+    background: white;
+}
+
+.gig-card:hover { box-shadow: var(--shadow); }
+
+.gig-image {
+    width: 100%;
+    height: 180px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 4px 4px 0 0;
+}
+
+.gig-details { padding: 12px 16px; }
+
+.gig-author {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.author-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #ddd;
+    margin-right: 8px;
+}
+
+.author-name { font-weight: 700; font-size: 0.9rem; color: var(--dark); }
+
+.gig-title {
+    font-size: 1rem;
+    color: var(--dark);
+    margin-bottom: 10px;
+    display: -webkit-box;
+    /*-webkit-line-clamp: 2;*/
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+}
+
+.gig-rating {
+    color: #ffbe5b;
+    font-weight: 700;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+}
+.gig-rating span { color: #b5b6ba; font-weight: 400; margin-left: 4px; }
+
+.gig-footer {
+    border-top: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.gig-price { font-size: 0.8rem; color: var(--text-main); font-weight: 600; text-transform: uppercase; }
+.gig-price strong { font-size: 1.1rem; color: var(--dark); }
+
+/* --- Modais (Estilo mais limpo) --- */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    position: relative;
+}
+
+.close-modal {
+    position: absolute;
+    top: 15px; right: 20px;
+    font-size: 1.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #999;
+}
+
+.form-group { margin-bottom: 1.2rem; }
+.form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; }
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit;
+}
+.form-group input:focus { border-color: var(--primary); outline: none; }
+
+/* Profile Page (Simplified) */
+.profile-hero {
+    display: flex;
+    gap: 2rem;
+    padding: 2rem 0;
+}
+.profile-sidebar { flex: 1; text-align: center; border: 1px solid var(--border); padding: 20px; border-radius: 4px; }
+.profile-main { flex: 2; }
+.profile-img-large { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin-bottom: 1rem; }
+
+/* --- Estilos do Dashboard Profissional --- */
+
+/* Container Principal */
+.dashboard-container {
+    display: grid;
+    grid-template-columns: 280px 1fr; /* Sidebar fixa + Conteúdo fluido */
+    gap: 2rem;
+    align-items: start;
+}
+
+/* Sidebar (Menu Lateral) */
+.dash-sidebar {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    position: sticky;
+    top: 100px;
+}
+
+.dash-avatar {
+    width: 120px;
+    height: 120px;
+    background: #eee;
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: #aaa;
+    overflow: hidden;
+}
+
+.dash-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.dash-name { font-size: 1.2rem; font-weight: 700; color: var(--dark); margin-bottom: 0.2rem; }
+.dash-role { font-size: 0.9rem; color: var(--text-main); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1.5rem; }
+
+.dash-menu button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    text-align: left;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-main);
+    transition: 0.3s;
+}
+
+.dash-menu button:hover, .dash-menu button.active {
+    color: var(--primary);
+    padding-left: 15px; /* Efeito de deslize */
+}
+
+/* Área de Conteúdo */
+.dash-content {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2rem;
+}
+
+.dash-section { display: none; }
+.dash-section.active { display: block; } /* Mostra a seção ativa */
+
+.dash-header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1rem;
+    margin-bottom: 2rem;
+}
+
+.dash-header h2 { font-size: 1.5rem; color: var(--dark); }
+.dash-header p { color: var(--text-main); font-size: 0.9rem; }
+
+/* Formulários Bonitos */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Duas colunas */
+    gap: 1.5rem;
+}
+
+.form-full { grid-column: span 2; } /* Ocupa largura total */
+
+.input-group label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 0.5rem;
+}
+
+.input-group input, .input-group textarea, .input-group select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: 0.3s;
+    background: #fdfdfd;
+}
+
+.input-group input:focus, .input-group textarea:focus {
+    border-color: var(--primary);
+    background: white;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(29, 191, 115, 0.1);
+}
+
+/* Tags de Interesse/Habilidade */
+.tags-input-container {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 5px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.tag-pill {
+    background: var(--primary);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.tag-pill span { cursor: pointer; font-weight: bold; }
+
+/* Responsividade do Dashboard */
+@media (max-width: 768px) {
+    .dashboard-container { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-full { grid-column: span 1; }
+    .dash-sidebar { position: static; }
+}
