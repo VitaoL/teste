@@ -1,29 +1,12 @@
+require('dotenv').config();
 const { Pool } = require('pg');
 
-class Database {
-    static #pool = null;
+const pool = new Pool({
+    user: 'admin',
+    host: '127.0.0.1',
+    database: 'meubanco',
+    password: 'senha123', // aqui vamos colocar senha123 no .env
+    port: 5432,
+});
 
-    static getPool() {
-        if (!this.#pool) {
-            this.#pool = new Pool({
-                user: 'postgres',
-                host: 'localhost',
-                database: 'clave_db',
-                password: 'sua_senha',
-                port: 5432,
-            });
-            console.log('Pool de conexões com o PostgreSQL estabelecido!');
-        }
-        return this.#pool;
-    }
-
-    static async closePool() {
-        if (this.#pool) {
-            await this.#pool.end();
-            console.log('Pool de conexões com o banco fechado.');
-            this.#pool = null;
-        }
-    }
-}
-
-module.exports = Database;
+module.exports = pool;
