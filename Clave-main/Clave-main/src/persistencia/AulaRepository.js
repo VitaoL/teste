@@ -30,11 +30,17 @@ class AulaRepository {
                    s.nome as status,
                    p.id   as professor_id,
                    p.nome as professor_nome,
-                   p.instrumento,
-                   p.foto_url
+                   COALESCE(inst.instrumento, 'Instrumento') as instrumento,
+                    p.foto_url
               FROM aula a
               LEFT JOIN professor p ON p.id = a.professor_id
               LEFT JOIN status_aula s ON s.id = a.status_id
+              LEFT JOIN LATERAL (
+                    SELECT string_agg(DISTINCT i.nome, ', ') as instrumento
+                      FROM professor_instrumento pi
+                      LEFT JOIN instrumento i ON i.id = pi.instrumento_id
+                     WHERE pi.professor_id = p.id
+              ) inst ON true
              WHERE a.aluno_id = $1
              ORDER BY a.data_hora DESC;
         `;
