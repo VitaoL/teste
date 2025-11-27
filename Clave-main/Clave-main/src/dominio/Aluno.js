@@ -11,28 +11,16 @@ class Aluno {
         this.#aulasAgendadas = [];
     }
 
-    /**
-     * Adiciona uma nova aula à lista de aulas do aluno.
-     * @param {Aula} aula
-     */
     adicionarAula(aula) {
         this.#aulasAgendadas.push(aula);
     }
 
-    // --- Métodos de Acesso ---
-    obterId() {
-        return this.#id;
-    }
-    obterNome() {
-        return this.#nome;
-    }
-    obterEmail(){
-        return this.#email;
-    }
-    obterAulasAgendadas() {
-        return this.#aulasAgendadas;
-    }
-    alterarNome(novoNome){
+    obterId() { return this.#id; }
+    obterNome() { return this.#nome; }
+    obterEmail() { return this.#email; }
+    obterAulasAgendadas() { return this.#aulasAgendadas; }
+
+    alterarNome(novoNome) {
         this.#nome = novoNome;
     }
 }
