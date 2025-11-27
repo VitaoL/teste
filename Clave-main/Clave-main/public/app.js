@@ -35,7 +35,8 @@ const state = {
   user: null,
   teachers: [],
   selected: null,
-  filter: ''
+  filter: '',
+  agenda: []
 };
 
 const els = {};
@@ -66,6 +67,8 @@ function cacheElements() {
   els.bookingPrice = document.getElementById('booking-price');
   els.bookingForm = document.getElementById('booking-form');
   els.dashboard = document.getElementById('dashboard');
+  els.agendaList = document.getElementById('agenda-list');
+  els.agendaEmpty = document.getElementById('agenda-empty');
 }
 
 function bindEvents() {
@@ -250,6 +253,7 @@ function hydrateUser() {
   if (saved) {
     state.user = JSON.parse(saved);
     applyUser();
+    loadAgenda();
   }
 }
 
@@ -265,10 +269,13 @@ function applyUser() {
     document.getElementById('dash-role').textContent = state.user.type === 'professor' ? 'Professor' : 'Aluno';
     document.getElementById('input-dash-name').value = state.user.name;
     document.getElementById('input-dash-email').value = state.user.email;
+    loadAgenda();
   } else {
     auth.style.display = 'flex';
     user.style.display = 'none';
     els.dashboard.style.display = 'none';
+    state.agenda = [];
+    renderAgenda();
   }
 }
 
@@ -283,6 +290,7 @@ async function handleLogin(e) {
     state.user = data;
     localStorage.setItem('clave:user', JSON.stringify(data));
     applyUser();
+    loadAgenda();
     closeModals();
   } catch (err) {
     console.error('Erro ao fazer login real:', err);
@@ -313,6 +321,7 @@ async function handleRegister(e) {
     state.user = data;
     localStorage.setItem('clave:user', JSON.stringify(data));
     applyUser();
+    loadAgenda();
     closeModals();
     alert('Conta criada com sucesso!');
   } catch (err) {
@@ -354,8 +363,56 @@ async function handleBooking(e) {
     alert('Aula agendada com sucesso!');
     closeModals();
     closeDrawer();
+    loadAgenda();
   } catch (err) {
     console.error('Erro ao agendar aula:', err);
     alert('Não foi possível concluir o agendamento. Tente novamente.');
   }
+}
+
+async function loadAgenda() {
+  if (!state.user) return;
+  try {
+    const query = new URLSearchParams({ userId: state.user.id, type: state.user.type });
+    const resp = await fetch(`/api/aulas?${query.toString()}`);
+    if (!resp.ok) throw new Error('Falha ao carregar agenda');
+    state.agenda = await resp.json();
+  } catch (err) {
+    console.error('Erro ao carregar agenda:', err);
+    state.agenda = [];
+  }
+  renderAgenda();
+}
+
+function renderAgenda() {
+  if (!els.agendaList || !els.agendaEmpty) return;
+
+  els.agendaList.innerHTML = '';
+
+  if (!state.agenda || state.agenda.length === 0) {
+    els.agendaEmpty.style.display = 'block';
+    return;
+  }
+
+  els.agendaEmpty.style.display = 'none';
+
+  state.agenda.forEach((aula) => {
+    const item = document.createElement('div');
+    item.className = 'agenda-item';
+
+    const data = new Date(aula.data_hora || aula.dataHora);
+    const formatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    const dataFormatada = isNaN(data.getTime()) ? '-' : formatter.format(data);
+
+    item.innerHTML = `
+      <div class="agenda-avatar">${(aula.professor_nome || aula.professorNome || 'A').charAt(0)}</div>
+      <div>
+        <div class="agenda-title">${aula.professor_nome || aula.professorNome || 'Professor'}</div>
+        <div class="agenda-meta">${dataFormatada} · ${aula.modalidade || 'online'}</div>
+      </div>
+      <div class="agenda-price">R$ ${Number(aula.valor_acordado || aula.valor || aula.preco || 0).toFixed(2)}</div>
+    `;
+
+    els.agendaList.appendChild(item);
+  });
 }

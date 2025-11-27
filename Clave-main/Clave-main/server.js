@@ -151,7 +151,7 @@ app.post('/api/login', async (req, res) => {
 
 // --- PAGAMENTO ---
 app.post('/api/payment', async (req, res) => {
-    const { teacherId, date, time, price, studentId } = req.body; 
+    const { teacherId, date, time, price, studentId } = req.body;
 
     try {
         // Cria objeto simples para salvar (supondo que AulaRepository aceite objeto simples)
@@ -168,6 +168,27 @@ app.post('/api/payment', async (req, res) => {
     } catch (error) {
         console.error("Erro ao agendar:", error);
         res.status(500).json({ error: "Erro ao processar agendamento." });
+    }
+});
+
+// --- AGENDA ---
+app.get('/api/aulas', async (req, res) => {
+    const { userId, type } = req.query;
+
+    if (!userId) {
+        return res.status(400).json({ error: 'userId é obrigatório' });
+    }
+
+    try {
+        const id = Number.parseInt(userId, 10);
+        const aulas = type === 'professor'
+            ? await aulaRepo.listarPorProfessor(id)
+            : await aulaRepo.listarPorAluno(id);
+
+        res.json(aulas);
+    } catch (error) {
+        console.error('Erro ao buscar aulas:', error);
+        res.status(500).json({ error: 'Erro ao buscar aulas.' });
     }
 });
 
