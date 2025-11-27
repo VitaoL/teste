@@ -285,11 +285,8 @@ async function handleLogin(e) {
     applyUser();
     closeModals();
   } catch (err) {
-    alert('Não foi possível entrar. Usando login local para testar.');
-    state.user = { id: Date.now(), name: email.split('@')[0], email, type: 'aluno' };
-    localStorage.setItem('clave:user', JSON.stringify(state.user));
-    applyUser();
-    closeModals();
+    console.error('Erro ao fazer login real:', err);
+    alert('Não foi possível entrar. Verifique seus dados ou tente novamente mais tarde.');
   }
 }
 
@@ -319,12 +316,8 @@ async function handleRegister(e) {
     closeModals();
     alert('Conta criada com sucesso!');
   } catch (err) {
-    console.warn('Cadastro local por fallback:', err.message);
-    const localUser = { id: Date.now(), name: payload.name, email: payload.email, type };
-    state.user = localUser;
-    localStorage.setItem('clave:user', JSON.stringify(localUser));
-    applyUser();
-    closeModals();
+    console.error('Erro ao cadastrar no backend:', err);
+    alert('Não foi possível criar sua conta. Por favor, revise os dados e tente novamente.');
   }
 }
 
@@ -362,8 +355,7 @@ async function handleBooking(e) {
     closeModals();
     closeDrawer();
   } catch (err) {
-    alert('Agendamento salvo localmente para demonstração.');
-    closeModals();
-    closeDrawer();
+    console.error('Erro ao agendar aula:', err);
+    alert('Não foi possível concluir o agendamento. Tente novamente.');
   }
 }
