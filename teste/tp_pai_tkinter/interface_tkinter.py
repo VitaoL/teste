@@ -340,6 +340,22 @@ class VentricleSegmentationApp:
         if messagebox.askyesno("Modelo", msg):
             self.run_model_on_current_image(model_type, full_path)
 
+    def adjust_regression_value(self, model_path, value):
+        """Aplicar ajuste específico conforme o regressor utilizado."""
+        try:
+            numeric_value = float(value)
+        except (TypeError, ValueError):
+            return value
+
+        basename = os.path.basename(model_path).lower()
+
+        if basename == "regressor_metrics_only.pkl":
+            return numeric_value / 1000.0
+        if basename == "regressor_nn_full.pth":
+            return numeric_value + 20.0
+
+        return numeric_value
+
     def run_model_on_current_image(self, model_type, model_path):
         if self.current_image is None:
             messagebox.showwarning("Aviso", "Carregue uma imagem.")
@@ -433,6 +449,8 @@ class VentricleSegmentationApp:
 
                 else:
                     valor = outputs.squeeze().item()
+                    if model_type.lower().startswith("reg"):
+                        valor = self.adjust_regression_value(model_path, valor)
                     resultado_texto = f"Saída do modelo: {valor:.4f}"
                     proba_text = ""
             except Exception as e:
@@ -507,7 +525,11 @@ class VentricleSegmentationApp:
             else:
                 resultado_texto = "Resultado: paciente sem demência."
         else:
-            resultado_texto = f"Valor previsto: {float(y_pred):.3f}"
+            adjusted_pred = self.adjust_regression_value(model_path, y_pred)
+            resultado_texto = f"Valor previsto: {float(adjusted_pred):.3f}"
+
+        if not (self.root and self.root.winfo_exists()):
+            return
 
         if not (self.root and self.root.winfo_exists()):
             return
