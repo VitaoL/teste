@@ -510,14 +510,14 @@ class VentricleSegmentationApp:
         left_canvas.configure(yscrollcommand=scrollbar.set)
 
         left_panel = tk.Frame(left_canvas, bg=self.colors['bg_dark'])
-        canvas_frame = left_canvas.create_window((0, 0), window=left_panel, anchor=tk.NW)
+        left_canvas_window = left_canvas.create_window((0, 0), window=left_panel, anchor=tk.NW)
 
         def configure_scroll_region(event=None):
             left_canvas.configure(scrollregion=left_canvas.bbox("all"))
 
         def configure_canvas_width(event=None):
             canvas_width = event.width if event else left_canvas.winfo_width()
-            left_canvas.itemconfig(canvas_frame, width=canvas_width)
+            left_canvas.itemconfig(left_canvas_window, width=canvas_width)
 
         left_panel.bind('<Configure>', configure_scroll_region)
         left_canvas.bind('<Configure>', configure_canvas_width)
