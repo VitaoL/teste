@@ -9,6 +9,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import os
 import joblib
+import warnings
 import torch
 
 try:
@@ -349,6 +350,7 @@ class VentricleSegmentationApp:
         is_pytorch = ext in [".pth", ".pt"] or "nn" in basename
 
         try:
+            load_warnings = []
             if model_path in self.loaded_models:
                 model = self.loaded_models[model_path]
             else:
@@ -360,12 +362,29 @@ class VentricleSegmentationApp:
                     )
                     model.eval()
                 else:
-                    model = joblib.load(model_path)
+                    with warnings.catch_warnings(record=True) as caught:
+                        warnings.simplefilter("always")
+                        model = joblib.load(model_path)
+                        load_warnings = [str(w.message) for w in caught]
 
                 self.loaded_models[model_path] = model
         except Exception as e:
-            messagebox.showerror("Erro", f"Erro ao carregar modelo:\n{str(e)}")
+            extra_tip = ""
+            if "xgboost" in str(e).lower():
+                extra_tip = (
+                    "\n\nO modelo do XGBoost foi salvo em uma versão antiga. "
+                    "Reexporte com Booster.save_model na versão original e carregue novamente."
+                )
+            messagebox.showerror("Erro", f"Erro ao carregar modelo:\n{str(e)}{extra_tip}")
             return
+
+        if load_warnings and self.root and self.root.winfo_exists():
+            formatted = "\n- " + "\n- ".join(load_warnings)
+            messagebox.showwarning(
+                "Avisos ao carregar modelo",
+                "Foram emitidos avisos ao abrir o modelo:" + formatted,
+                parent=self.root
+            )
 
         if is_pytorch:
             img = self.result_image if self.result_image is not None else self.current_image
@@ -449,7 +468,9 @@ class VentricleSegmentationApp:
         ]
 
         try:
-            x = np.array([[self.descriptors[f] for f in feature_order]], dtype=float)
+            x = pd.DataFrame([
+                {feature: self.descriptors[feature] for feature in feature_order}
+            ])
         except KeyError as e:
             messagebox.showerror(
                 "Erro",
@@ -458,16 +479,27 @@ class VentricleSegmentationApp:
             return
 
         try:
-            y_pred = model.predict(x)[0]
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                y_pred = model.predict(x)[0]
 
-            proba_text = ""
-            if hasattr(model, "predict_proba"):
-                proba = model.predict_proba(x)[0]
-                if len(proba) > 1:
-                    proba_text = f"\nProbabilidade classe 1: {proba[1] * 100:.1f}%"
+                proba_text = ""
+                if hasattr(model, "predict_proba"):
+                    proba = model.predict_proba(x)[0]
+                    if len(proba) > 1:
+                        proba_text = f"\nProbabilidade classe 1: {proba[1] * 100:.1f}%"
+                predict_warnings = [str(w.message) for w in caught]
         except Exception as e:
             messagebox.showerror("Erro", f"Erro na predição:\n{str(e)}")
             return
+
+        if predict_warnings and self.root and self.root.winfo_exists():
+            formatted = "\n- " + "\n- ".join(predict_warnings)
+            messagebox.showwarning(
+                "Avisos na predição",
+                "Foram emitidos avisos durante a predição:" + formatted,
+                parent=self.root
+            )
 
         if model_type.lower().startswith("class"):
             if int(y_pred) == 1:
