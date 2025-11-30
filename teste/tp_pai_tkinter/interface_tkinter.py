@@ -674,6 +674,20 @@ class VentricleSegmentationApp:
         )
         btn_segment.pack(fill=tk.X, pady=(10, 0))
 
+        btn_models = tk.Button(
+            method_frame,
+            text="Modelos",
+            command=self.open_models_dialog,
+            bg=self.colors['accent_blue'],
+            fg=self.colors['fg_primary'],
+            font=('Arial', 10, 'bold'),
+            relief=tk.FLAT,
+            cursor='hand2',
+            padx=20,
+            pady=10
+        )
+        btn_models.pack(fill=tk.X, pady=(8, 0))
+
         params_frame = ttk.LabelFrame(left_panel, text="Parâmetros", padding=10)
         params_frame.pack(fill=tk.X, pady=(0, 15))
 
