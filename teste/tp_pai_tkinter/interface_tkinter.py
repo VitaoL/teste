@@ -477,11 +477,15 @@ class VentricleSegmentationApp:
         else:
             resultado_texto = f"Valor previsto: {float(y_pred):.3f}"
 
+        if not (self.root and self.root.winfo_exists()):
+            return
+
         messagebox.showinfo(
             "Resultado do Modelo",
             f"Modelo: {os.path.basename(model_path)}\n"
             f"Tipo: {model_type}\n\n"
-            f"{resultado_texto}{proba_text}"
+            f"{resultado_texto}{proba_text}",
+            parent=self.root
         )
 
     def create_ui(self):
@@ -510,14 +514,15 @@ class VentricleSegmentationApp:
         left_canvas.configure(yscrollcommand=scrollbar.set)
 
         left_panel = tk.Frame(left_canvas, bg=self.colors['bg_dark'])
-        left_canvas_window = left_canvas.create_window((0, 0), window=left_panel, anchor=tk.NW)
+        left_canvas_window_id = left_canvas.create_window((0, 0), window=left_panel, anchor=tk.NW)
 
         def configure_scroll_region(event=None):
             left_canvas.configure(scrollregion=left_canvas.bbox("all"))
 
         def configure_canvas_width(event=None):
             canvas_width = event.width if event else left_canvas.winfo_width()
-            left_canvas.itemconfig(left_canvas_window, width=canvas_width)
+            if left_canvas_window_id:
+                left_canvas.itemconfig(left_canvas_window_id, width=canvas_width)
 
         left_panel.bind('<Configure>', configure_scroll_region)
         left_canvas.bind('<Configure>', configure_canvas_width)
