@@ -185,6 +185,38 @@ class VentricleSegmentationApp:
         self.create_menu()
         self.create_ui()
 
+    def normalize_classifier_prediction(self, prediction):
+        if prediction is None:
+            return ""
+
+        if isinstance(prediction, np.generic):
+            prediction = prediction.item()
+
+        if isinstance(prediction, (list, tuple, np.ndarray)):
+            if len(prediction) == 0:
+                return ""
+            prediction = prediction[0]
+
+        if isinstance(prediction, (int, float)):
+            return "Demented" if prediction >= 1 else "Nondemented"
+
+        prediction_str = str(prediction).strip().lower()
+        if prediction_str == "":
+            return ""
+        if "non" in prediction_str:
+            return "Nondemented"
+        if "dem" in prediction_str or prediction_str in {"1", "true"}:
+            return "Demented"
+        return "Nondemented"
+
+    def format_regressor_value(self, value):
+        if value is None or value == "":
+            return ""
+        try:
+            return str(int(round(float(value))))
+        except Exception:
+            return str(value)
+
     def _resolve_models_callback(self):
         """Retorna a ação do botão de modelos com um fallback seguro."""
         callback = getattr(self, "open_models_dialog", None)
@@ -499,13 +531,15 @@ class VentricleSegmentationApp:
                     pred_label = int(np.argmax(probs))
                     prob_doente = float(probs[1])
 
+                    normalized_label = self.normalize_classifier_prediction(pred_label)
+
                     self.last_classifier_model = os.path.basename(model_path)
-                    self.last_model_prediction = pred_label
+                    self.last_model_prediction = normalized_label
                     self.last_model_probability = prob_doente
                     self.last_regression_value = None
                     self.last_regressor_model = None
 
-                    if pred_label == 1:
+                    if normalized_label == "Demented":
                         resultado_texto = "Resultado: paciente com demência."
                     else:
                         resultado_texto = "Resultado: paciente sem demência."
@@ -516,13 +550,15 @@ class VentricleSegmentationApp:
                     prob_doente = torch.sigmoid(outputs)[0, 0].item()
                     pred_label = int(prob_doente >= 0.5)
 
+                    normalized_label = self.normalize_classifier_prediction(pred_label)
+
                     self.last_classifier_model = os.path.basename(model_path)
-                    self.last_model_prediction = pred_label
+                    self.last_model_prediction = normalized_label
                     self.last_model_probability = prob_doente
                     self.last_regression_value = None
                     self.last_regressor_model = None
 
-                    if pred_label == 1:
+                    if normalized_label == "Demented":
                         resultado_texto = "Resultado: paciente com demência."
                     else:
                         resultado_texto = "Resultado: paciente sem demência."
@@ -607,9 +643,10 @@ class VentricleSegmentationApp:
             self.last_classifier_model = os.path.basename(model_path)
             self.last_regressor_model = None
             self.last_regression_value = None
-            self.last_model_prediction = int(y_pred) if str(y_pred).isdigit() else y_pred
+            normalized_label = self.normalize_classifier_prediction(y_pred)
+            self.last_model_prediction = normalized_label
             self.last_model_probability = proba_value if proba_value is not None else ""
-            if int(y_pred) == 1:
+            if normalized_label == "Demented":
                 resultado_texto = "Resultado: paciente com demência."
             else:
                 resultado_texto = "Resultado: paciente sem demência."
@@ -1627,13 +1664,19 @@ class VentricleSegmentationApp:
 
         image_name = os.path.basename(self.current_image_path) if self.current_image_path else ""
 
+        classifier_label = self.normalize_classifier_prediction(self.last_model_prediction)
+        classifier_proba = (
+            "" if self.last_model_probability in (None, "") else float(self.last_model_probability)
+        )
+        regressor_value = self.format_regressor_value(self.last_regression_value)
+
         self.descriptors["Filename"] = image_name
         self.descriptors["Imagem"] = image_name
         self.descriptors["Modelo_classificador"] = self.last_classifier_model if self.last_classifier_model else ""
-        self.descriptors["Classificador_predicao"] = self.last_model_prediction if self.last_model_prediction is not None else ""
-        self.descriptors["Classificador_proba_classe1"] = self.last_model_probability if self.last_model_probability is not None else ""
+        self.descriptors["Classificador_predicao"] = classifier_label
+        self.descriptors["Classificador_proba_classe1"] = classifier_proba
         self.descriptors["Modelo_regressor"] = self.last_regressor_model if self.last_regressor_model else ""
-        self.descriptors["Regressor_valor"] = self.last_regression_value if self.last_regression_value is not None else ""
+        self.descriptors["Regressor_valor"] = regressor_value
 
         colunas = [
             "Filename",
@@ -1719,7 +1762,9 @@ class VentricleSegmentationApp:
                 if len(probas) > 1:
                     proba = float(probas[1])
 
-            self.last_model_prediction = int(y_pred) if str(y_pred).isdigit() else y_pred
+            normalized_label = self.normalize_classifier_prediction(y_pred)
+
+            self.last_model_prediction = normalized_label
             self.last_model_probability = proba if proba is not None else ""
             self.last_classifier_model = os.path.basename(model_path)
             self.last_regressor_model = None
