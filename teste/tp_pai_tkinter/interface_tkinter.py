@@ -154,6 +154,7 @@ class VentricleSegmentationApp:
         self.result_image = None
         self.contours = None
         self.descriptors = None
+        self.last_classifier_prediction = None
         self.last_model_prediction = None
         self.last_model_probability = None
         self.last_regression_value = None
@@ -535,6 +536,7 @@ class VentricleSegmentationApp:
 
                     self.last_classifier_model = os.path.basename(model_path)
                     self.last_model_prediction = normalized_label
+                    self.last_classifier_prediction = normalized_label
                     self.last_model_probability = prob_doente
                     self.last_regression_value = None
                     self.last_regressor_model = None
@@ -554,6 +556,7 @@ class VentricleSegmentationApp:
 
                     self.last_classifier_model = os.path.basename(model_path)
                     self.last_model_prediction = normalized_label
+                    self.last_classifier_prediction = normalized_label
                     self.last_model_probability = prob_doente
                     self.last_regression_value = None
                     self.last_regressor_model = None
@@ -645,6 +648,7 @@ class VentricleSegmentationApp:
             self.last_regression_value = None
             normalized_label = self.normalize_classifier_prediction(y_pred)
             self.last_model_prediction = normalized_label
+            self.last_classifier_prediction = normalized_label
             self.last_model_probability = proba_value if proba_value is not None else ""
             if normalized_label == "Demented":
                 resultado_texto = "Resultado: paciente com demência."
@@ -1279,6 +1283,7 @@ class VentricleSegmentationApp:
             self.result_image = None
             self.contours = None
             self.descriptors = None
+            self.last_classifier_prediction = None
             self.last_model_prediction = None
             self.last_model_probability = None
             self.last_regression_value = None
@@ -1342,6 +1347,7 @@ class VentricleSegmentationApp:
             self.result_image = None
             self.contours = None
             self.descriptors = None
+            self.last_classifier_prediction = None
             self.last_model_prediction = None
             self.last_model_probability = None
 
@@ -1664,7 +1670,8 @@ class VentricleSegmentationApp:
 
         image_name = os.path.basename(self.current_image_path) if self.current_image_path else ""
 
-        classifier_label = self.normalize_classifier_prediction(self.last_model_prediction)
+        classifier_source = self.last_classifier_prediction if self.last_classifier_prediction is not None else self.last_model_prediction
+        classifier_label = self.normalize_classifier_prediction(classifier_source)
         regressor_value = self.format_regressor_value(self.last_regression_value)
 
         self.descriptors["Filename"] = image_name
@@ -1715,6 +1722,7 @@ class VentricleSegmentationApp:
 
         if not os.path.exists(model_path):
             self.last_model_prediction = None
+            self.last_classifier_prediction = None
             self.last_model_probability = None
             return
 
@@ -1726,6 +1734,7 @@ class VentricleSegmentationApp:
                 self.loaded_models[model_path] = model
         except Exception:
             self.last_model_prediction = None
+            self.last_classifier_prediction = None
             self.last_model_probability = None
             return
 
@@ -1742,6 +1751,7 @@ class VentricleSegmentationApp:
             x = np.array([[self.descriptors[f] for f in feature_order]], dtype=float)
         except KeyError:
             self.last_model_prediction = None
+            self.last_classifier_prediction = None
             self.last_model_probability = None
             return
 
@@ -1756,12 +1766,14 @@ class VentricleSegmentationApp:
             normalized_label = self.normalize_classifier_prediction(y_pred)
 
             self.last_model_prediction = normalized_label
+            self.last_classifier_prediction = normalized_label
             self.last_model_probability = proba if proba is not None else ""
             self.last_classifier_model = os.path.basename(model_path)
             self.last_regressor_model = None
             self.last_regression_value = None
         except Exception:
             self.last_model_prediction = None
+            self.last_classifier_prediction = None
             self.last_model_probability = None
             self.last_classifier_model = None
             self.last_regressor_model = None
