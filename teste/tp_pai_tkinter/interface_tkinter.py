@@ -214,7 +214,10 @@ class VentricleSegmentationApp:
         if value is None or value == "":
             return ""
         try:
-            return str(int(round(float(value))))
+            as_float = float(value)
+            if isinstance(value, (np.generic,)):
+                as_float = float(value)
+            return str(as_float)
         except Exception:
             return str(value)
 
@@ -1651,6 +1654,17 @@ class VentricleSegmentationApp:
 
         try:
             self.dataset_df = pd.read_csv(path, delimiter=';')
+            feature_cols = [
+                'total_area',
+                'avg_circularity',
+                'eccentricity',
+                'total_perimeter',
+                'avg_solidity',
+                'avg_aspect_ratio'
+            ]
+            for col in feature_cols:
+                if col in self.dataset_df.columns:
+                    self.dataset_df[col] = pd.to_numeric(self.dataset_df[col], errors='coerce')
             messagebox.showinfo("Info", f"CSV carregado.\nLinhas: {len(self.dataset_df)}")
         except Exception as e:
             messagebox.showerror("Erro", f"Erro ao carregar CSV:\n{str(e)}")
@@ -1780,7 +1794,7 @@ class VentricleSegmentationApp:
             self.last_regression_value = None
 
     def show_scatterplots(self):
-        if self.dataset_df is None:
+        if self.dataset_df is None or self.dataset_df.empty:
             messagebox.showwarning("Aviso", "Carregue um CSV.")
             return
 
@@ -1789,11 +1803,17 @@ class VentricleSegmentationApp:
         win.geometry("1200x800")
         win.configure(bg=self.colors['bg_dark'])
 
-        if 'CDR' not in self.dataset_df.columns and 'Group' not in self.dataset_df.columns:
-            messagebox.showwarning("Aviso", "CSV sem coluna de classe (CDR ou Group).")
-            return
+        class_col = None
+        if 'Classificador_predicao' in self.dataset_df.columns:
+            class_col = 'Classificador_predicao'
+        elif 'CDR' in self.dataset_df.columns:
+            class_col = 'CDR'
+        elif 'Group' in self.dataset_df.columns:
+            class_col = 'Group'
 
-        class_col = 'CDR' if 'CDR' in self.dataset_df.columns else 'Group'
+        if class_col is None:
+            messagebox.showwarning("Aviso", "CSV sem coluna de classe (Classificador_predicao, CDR ou Group).")
+            return
         color_map = {
             'Converted': 'black',
             'Nondemented': 'blue',
@@ -1804,7 +1824,21 @@ class VentricleSegmentationApp:
             2: 'red'
         }
 
-        colors = [color_map.get(c, 'gray') for c in self.dataset_df[class_col]]
+        def normalize_class(value):
+            if pd.isna(value):
+                return None
+            if isinstance(value, str):
+                lower = value.strip().lower()
+                if 'convert' in lower:
+                    return 'Converted'
+                if 'non' in lower:
+                    return 'Nondemented'
+                if 'dem' in lower:
+                    return 'Demented'
+            return value
+
+        classes = self.dataset_df[class_col].apply(normalize_class)
+        colors = [color_map.get(c, 'gray') for c in classes]
 
         features = [
             'total_area',
