@@ -1665,17 +1665,11 @@ class VentricleSegmentationApp:
         image_name = os.path.basename(self.current_image_path) if self.current_image_path else ""
 
         classifier_label = self.normalize_classifier_prediction(self.last_model_prediction)
-        classifier_proba = (
-            "" if self.last_model_probability in (None, "") else float(self.last_model_probability)
-        )
         regressor_value = self.format_regressor_value(self.last_regression_value)
 
         self.descriptors["Filename"] = image_name
         self.descriptors["Imagem"] = image_name
-        self.descriptors["Modelo_classificador"] = self.last_classifier_model if self.last_classifier_model else ""
         self.descriptors["Classificador_predicao"] = classifier_label
-        self.descriptors["Classificador_proba_classe1"] = classifier_proba
-        self.descriptors["Modelo_regressor"] = self.last_regressor_model if self.last_regressor_model else ""
         self.descriptors["Regressor_valor"] = regressor_value
 
         colunas = [
@@ -1687,10 +1681,7 @@ class VentricleSegmentationApp:
             "total_perimeter",
             "avg_solidity",
             "avg_aspect_ratio",
-            "Modelo_classificador",
             "Classificador_predicao",
-            "Classificador_proba_classe1",
-            "Modelo_regressor",
             "Regressor_valor"
         ]
 
