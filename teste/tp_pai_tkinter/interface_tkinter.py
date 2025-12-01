@@ -156,6 +156,9 @@ class VentricleSegmentationApp:
         self.descriptors = None
         self.last_model_prediction = None
         self.last_model_probability = None
+        self.last_regression_value = None
+        self.last_classifier_model = None
+        self.last_regressor_model = None
         self.current_image_path = None
         self.zoom_level = 1.0
         self.pan_x = 0
@@ -175,9 +178,26 @@ class VentricleSegmentationApp:
         self.kmeans_k = tk.IntVar(value=4)
         self.loaded_models = {}
 
+        # Garantir que o botão de modelos sempre tenha um callback válido
+        self.models_button_callback = self._resolve_models_callback()
+
         self.setup_theme()
         self.create_menu()
         self.create_ui()
+
+    def _resolve_models_callback(self):
+        """Retorna a ação do botão de modelos com um fallback seguro."""
+        callback = getattr(self, "open_models_dialog", None)
+        if callable(callback):
+            return callback
+
+        def _missing_models_dialog():
+            messagebox.showerror(
+                "Modelos",
+                "Ação de modelos indisponível no momento."
+            )
+
+        return _missing_models_dialog
 
     def setup_theme(self):
         self.root.configure(bg=self.colors['bg_dark'])
@@ -479,6 +499,12 @@ class VentricleSegmentationApp:
                     pred_label = int(np.argmax(probs))
                     prob_doente = float(probs[1])
 
+                    self.last_classifier_model = os.path.basename(model_path)
+                    self.last_model_prediction = pred_label
+                    self.last_model_probability = prob_doente
+                    self.last_regression_value = None
+                    self.last_regressor_model = None
+
                     if pred_label == 1:
                         resultado_texto = "Resultado: paciente com demência."
                     else:
@@ -489,6 +515,12 @@ class VentricleSegmentationApp:
                 elif outputs.ndim == 2 and outputs.shape[1] == 1:
                     prob_doente = torch.sigmoid(outputs)[0, 0].item()
                     pred_label = int(prob_doente >= 0.5)
+
+                    self.last_classifier_model = os.path.basename(model_path)
+                    self.last_model_prediction = pred_label
+                    self.last_model_probability = prob_doente
+                    self.last_regression_value = None
+                    self.last_regressor_model = None
 
                     if pred_label == 1:
                         resultado_texto = "Resultado: paciente com demência."
@@ -501,6 +533,10 @@ class VentricleSegmentationApp:
                     valor = outputs.squeeze().item()
                     if model_type.lower().startswith("reg"):
                         valor = self.adjust_regression_value(model_path, valor)
+                        self.last_regression_value = float(valor)
+                        self.last_regressor_model = os.path.basename(model_path)
+                        self.last_model_prediction = None
+                        self.last_model_probability = None
                     resultado_texto = f"Saída do modelo: {valor:.4f}"
                     proba_text = ""
             except Exception as e:
@@ -552,10 +588,12 @@ class VentricleSegmentationApp:
                 y_pred = model.predict(x)[0]
 
                 proba_text = ""
+                proba_value = None
                 if hasattr(model, "predict_proba"):
                     proba = model.predict_proba(x)[0]
                     if len(proba) > 1:
-                        proba_text = f"\nProbabilidade classe 1: {proba[1] * 100:.1f}%"
+                        proba_value = float(proba[1])
+                        proba_text = f"\nProbabilidade classe 1: {proba_value * 100:.1f}%"
                 predict_warnings = [str(w.message) for w in caught]
         except Exception as e:
             messagebox.showerror("Erro", f"Erro na predição:\n{str(e)}")
@@ -566,12 +604,22 @@ class VentricleSegmentationApp:
             print("[Avisos predição]" + formatted)
 
         if model_type.lower().startswith("class"):
+            self.last_classifier_model = os.path.basename(model_path)
+            self.last_regressor_model = None
+            self.last_regression_value = None
+            self.last_model_prediction = int(y_pred) if str(y_pred).isdigit() else y_pred
+            self.last_model_probability = proba_value if proba_value is not None else ""
             if int(y_pred) == 1:
                 resultado_texto = "Resultado: paciente com demência."
             else:
                 resultado_texto = "Resultado: paciente sem demência."
         else:
             adjusted_pred = self.adjust_regression_value(model_path, y_pred)
+            self.last_regressor_model = os.path.basename(model_path)
+            self.last_regression_value = float(adjusted_pred)
+            self.last_classifier_model = None
+            self.last_model_prediction = None
+            self.last_model_probability = None
             resultado_texto = f"Valor previsto: {float(adjusted_pred):.3f}"
 
         if not (self.root and self.root.winfo_exists()):
@@ -717,21 +765,10 @@ class VentricleSegmentationApp:
         )
         btn_segment.pack(fill=tk.X, pady=(10, 0))
 
-        open_models_callback = getattr(self, "open_models_dialog", None)
-        if open_models_callback is None:
-            def _missing_models_dialog():
-                messagebox.showerror(
-                    "Modelos",
-                    "Ação de modelos indisponível no momento."
-                )
-
-            open_models_callback = _missing_models_dialog
-            self.open_models_dialog = open_models_callback
-
         btn_models = tk.Button(
             method_frame,
             text="Modelos",
-            command=open_models_callback,
+            command=self.models_button_callback,
             bg=self.colors['accent_blue'],
             fg=self.colors['fg_primary'],
             font=('Arial', 10, 'bold'),
@@ -1207,6 +1244,9 @@ class VentricleSegmentationApp:
             self.descriptors = None
             self.last_model_prediction = None
             self.last_model_probability = None
+            self.last_regression_value = None
+            self.last_classifier_model = None
+            self.last_regressor_model = None
 
             self.display_image(image)
             self.update_info(f"Imagem: {os.path.basename(path)} | Shape: {image.shape}")
@@ -1587,10 +1627,13 @@ class VentricleSegmentationApp:
 
         image_name = os.path.basename(self.current_image_path) if self.current_image_path else ""
 
-        self.descriptors["Filename"] = os.path.basename(path)
+        self.descriptors["Filename"] = image_name
         self.descriptors["Imagem"] = image_name
-        self.descriptors["Modelo_predicao"] = self.last_model_prediction if self.last_model_prediction is not None else ""
-        self.descriptors["Modelo_proba_classe1"] = self.last_model_probability if self.last_model_probability is not None else ""
+        self.descriptors["Modelo_classificador"] = self.last_classifier_model if self.last_classifier_model else ""
+        self.descriptors["Classificador_predicao"] = self.last_model_prediction if self.last_model_prediction is not None else ""
+        self.descriptors["Classificador_proba_classe1"] = self.last_model_probability if self.last_model_probability is not None else ""
+        self.descriptors["Modelo_regressor"] = self.last_regressor_model if self.last_regressor_model else ""
+        self.descriptors["Regressor_valor"] = self.last_regression_value if self.last_regression_value is not None else ""
 
         colunas = [
             "Filename",
@@ -1601,8 +1644,11 @@ class VentricleSegmentationApp:
             "total_perimeter",
             "avg_solidity",
             "avg_aspect_ratio",
-            "Modelo_predicao",
-            "Modelo_proba_classe1"
+            "Modelo_classificador",
+            "Classificador_predicao",
+            "Classificador_proba_classe1",
+            "Modelo_regressor",
+            "Regressor_valor"
         ]
 
         df = pd.DataFrame([self.descriptors], columns=colunas)
@@ -1675,9 +1721,15 @@ class VentricleSegmentationApp:
 
             self.last_model_prediction = int(y_pred) if str(y_pred).isdigit() else y_pred
             self.last_model_probability = proba if proba is not None else ""
+            self.last_classifier_model = os.path.basename(model_path)
+            self.last_regressor_model = None
+            self.last_regression_value = None
         except Exception:
             self.last_model_prediction = None
             self.last_model_probability = None
+            self.last_classifier_model = None
+            self.last_regressor_model = None
+            self.last_regression_value = None
 
     def show_scatterplots(self):
         if self.dataset_df is None:
