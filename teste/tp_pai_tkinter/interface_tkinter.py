@@ -269,6 +269,23 @@ class VentricleSegmentationApp:
         self.style = style
         self.apply_font_size()
 
+    def _refresh_widget_fonts(self, widget, size):
+        try:
+            current_font = widget.cget("font")
+        except tk.TclError:
+            current_font = None
+
+        if current_font:
+            try:
+                tk_font = tkfont.Font(font=current_font)
+                tk_font.configure(size=size)
+                widget.configure(font=tk_font)
+            except tk.TclError:
+                pass
+
+        for child in widget.winfo_children():
+            self._refresh_widget_fonts(child, size)
+
     def create_menu(self):
         menubar = Menu(self.root, bg=self.colors['bg_medium'], fg=self.colors['fg_primary'])
         self.root.config(menu=menubar)
@@ -1617,6 +1634,8 @@ class VentricleSegmentationApp:
         self.style.configure('.', font=('Arial', size))
         self.style.configure('Treeview', font=('Arial', size))
         self.style.configure('Treeview.Heading', font=('Arial', size, 'bold'))
+
+        self._refresh_widget_fonts(self.root, size)
 
         self.root.option_add('*Font', ('Arial', size))
 
