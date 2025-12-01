@@ -9,6 +9,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import os
 import joblib
+import warnings
 import torch
 
 try:
@@ -153,6 +154,9 @@ class VentricleSegmentationApp:
         self.result_image = None
         self.contours = None
         self.descriptors = None
+        self.last_model_prediction = None
+        self.last_model_probability = None
+        self.current_image_path = None
         self.zoom_level = 1.0
         self.pan_x = 0
         self.pan_y = 0
@@ -336,6 +340,76 @@ class VentricleSegmentationApp:
         if messagebox.askyesno("Modelo", msg):
             self.run_model_on_current_image(model_type, full_path)
 
+    def open_models_dialog(self):
+        classifiers, regressors = self.get_model_files()
+
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Modelos")
+        dialog.configure(bg=self.colors['bg_dark'])
+
+        container = tk.Frame(dialog, bg=self.colors['bg_dark'])
+        container.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+
+        def add_section(title_text, items, model_type):
+            frame = ttk.LabelFrame(container, text=title_text, padding=10)
+            frame.pack(fill=tk.X, pady=(0, 10))
+
+            if not items:
+                tk.Label(
+                    frame,
+                    text="Nenhum arquivo encontrado.",
+                    bg=self.colors['bg_dark'],
+                    fg=self.colors['fg_secondary'],
+                    anchor=tk.W
+                ).pack(fill=tk.X)
+                return
+
+            for name in items:
+                btn = tk.Button(
+                    frame,
+                    text=name,
+                    command=lambda n=name: self.show_model_details(model_type, n),
+                    bg=self.colors['bg_light'],
+                    fg=self.colors['fg_primary'],
+                    relief=tk.FLAT,
+                    cursor='hand2',
+                    anchor=tk.W,
+                    padx=10,
+                    pady=6
+                )
+                btn.pack(fill=tk.X, pady=2)
+
+        add_section("Classificadores", classifiers, "Classificador")
+        add_section("Regressores", regressors, "Regressor")
+
+        tk.Button(
+            container,
+            text="Fechar",
+            command=dialog.destroy,
+            bg=self.colors['accent_red'],
+            fg=self.colors['fg_primary'],
+            relief=tk.FLAT,
+            cursor='hand2',
+            padx=12,
+            pady=8
+        ).pack(pady=(10, 0))
+
+    def adjust_regression_value(self, model_path, value):
+        """Aplicar ajuste específico conforme o regressor utilizado."""
+        try:
+            numeric_value = float(value)
+        except (TypeError, ValueError):
+            return value
+
+        basename = os.path.basename(model_path).lower()
+
+        if basename == "regressor_metrics_only.pkl":
+            return numeric_value / 1000.0
+        if basename == "regressor_nn_full.pth":
+            return numeric_value + 20.0
+
+        return numeric_value
+
     def run_model_on_current_image(self, model_type, model_path):
         if self.current_image is None:
             messagebox.showwarning("Aviso", "Carregue uma imagem.")
@@ -346,6 +420,7 @@ class VentricleSegmentationApp:
         is_pytorch = ext in [".pth", ".pt"] or "nn" in basename
 
         try:
+            load_warnings = []
             if model_path in self.loaded_models:
                 model = self.loaded_models[model_path]
             else:
@@ -357,12 +432,25 @@ class VentricleSegmentationApp:
                     )
                     model.eval()
                 else:
-                    model = joblib.load(model_path)
+                    with warnings.catch_warnings(record=True) as caught:
+                        warnings.simplefilter("always")
+                        model = joblib.load(model_path)
+                        load_warnings = [str(w.message) for w in caught]
 
                 self.loaded_models[model_path] = model
         except Exception as e:
-            messagebox.showerror("Erro", f"Erro ao carregar modelo:\n{str(e)}")
+            extra_tip = ""
+            if "xgboost" in str(e).lower():
+                extra_tip = (
+                    "\n\nO modelo do XGBoost foi salvo em uma versão antiga. "
+                    "Reexporte com Booster.save_model na versão original e carregue novamente."
+                )
+            messagebox.showerror("Erro", f"Erro ao carregar modelo:\n{str(e)}{extra_tip}")
             return
+
+        if load_warnings:
+            formatted = "\n- " + "\n- ".join(load_warnings)
+            print("[Avisos modelo]" + formatted)
 
         if is_pytorch:
             img = self.result_image if self.result_image is not None else self.current_image
@@ -411,6 +499,8 @@ class VentricleSegmentationApp:
 
                 else:
                     valor = outputs.squeeze().item()
+                    if model_type.lower().startswith("reg"):
+                        valor = self.adjust_regression_value(model_path, valor)
                     resultado_texto = f"Saída do modelo: {valor:.4f}"
                     proba_text = ""
             except Exception as e:
@@ -446,7 +536,9 @@ class VentricleSegmentationApp:
         ]
 
         try:
-            x = np.array([[self.descriptors[f] for f in feature_order]], dtype=float)
+            x = pd.DataFrame([
+                {feature: self.descriptors[feature] for feature in feature_order}
+            ])
         except KeyError as e:
             messagebox.showerror(
                 "Erro",
@@ -455,16 +547,23 @@ class VentricleSegmentationApp:
             return
 
         try:
-            y_pred = model.predict(x)[0]
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                y_pred = model.predict(x)[0]
 
-            proba_text = ""
-            if hasattr(model, "predict_proba"):
-                proba = model.predict_proba(x)[0]
-                if len(proba) > 1:
-                    proba_text = f"\nProbabilidade classe 1: {proba[1] * 100:.1f}%"
+                proba_text = ""
+                if hasattr(model, "predict_proba"):
+                    proba = model.predict_proba(x)[0]
+                    if len(proba) > 1:
+                        proba_text = f"\nProbabilidade classe 1: {proba[1] * 100:.1f}%"
+                predict_warnings = [str(w.message) for w in caught]
         except Exception as e:
             messagebox.showerror("Erro", f"Erro na predição:\n{str(e)}")
             return
+
+        if predict_warnings:
+            formatted = "\n- " + "\n- ".join(predict_warnings)
+            print("[Avisos predição]" + formatted)
 
         if model_type.lower().startswith("class"):
             if int(y_pred) == 1:
@@ -472,13 +571,18 @@ class VentricleSegmentationApp:
             else:
                 resultado_texto = "Resultado: paciente sem demência."
         else:
-            resultado_texto = f"Valor previsto: {float(y_pred):.3f}"
+            adjusted_pred = self.adjust_regression_value(model_path, y_pred)
+            resultado_texto = f"Valor previsto: {float(adjusted_pred):.3f}"
+
+        if not (self.root and self.root.winfo_exists()):
+            return
 
         messagebox.showinfo(
             "Resultado do Modelo",
             f"Modelo: {os.path.basename(model_path)}\n"
             f"Tipo: {model_type}\n\n"
-            f"{resultado_texto}{proba_text}"
+            f"{resultado_texto}{proba_text}",
+            parent=self.root
         )
 
     def create_ui(self):
@@ -507,14 +611,15 @@ class VentricleSegmentationApp:
         left_canvas.configure(yscrollcommand=scrollbar.set)
 
         left_panel = tk.Frame(left_canvas, bg=self.colors['bg_dark'])
-        canvas_frame = left_canvas.create_window((0, 0), window=left_panel, anchor=tk.NW)
+        left_canvas_window_id = left_canvas.create_window((0, 0), window=left_panel, anchor=tk.NW)
 
         def configure_scroll_region(event=None):
             left_canvas.configure(scrollregion=left_canvas.bbox("all"))
 
         def configure_canvas_width(event=None):
             canvas_width = event.width if event else left_canvas.winfo_width()
-            left_canvas.itemconfig(canvas_frame, width=canvas_width)
+            if left_canvas_window_id:
+                left_canvas.itemconfig(left_canvas_window_id, width=canvas_width)
 
         left_panel.bind('<Configure>', configure_scroll_region)
         left_canvas.bind('<Configure>', configure_canvas_width)
@@ -611,6 +716,31 @@ class VentricleSegmentationApp:
             pady=10
         )
         btn_segment.pack(fill=tk.X, pady=(10, 0))
+
+        open_models_callback = getattr(self, "open_models_dialog", None)
+        if open_models_callback is None:
+            def _missing_models_dialog():
+                messagebox.showerror(
+                    "Modelos",
+                    "Ação de modelos indisponível no momento."
+                )
+
+            open_models_callback = _missing_models_dialog
+            self.open_models_dialog = open_models_callback
+
+        btn_models = tk.Button(
+            method_frame,
+            text="Modelos",
+            command=open_models_callback,
+            bg=self.colors['accent_blue'],
+            fg=self.colors['fg_primary'],
+            font=('Arial', 10, 'bold'),
+            relief=tk.FLAT,
+            cursor='hand2',
+            padx=20,
+            pady=10
+        )
+        btn_models.pack(fill=tk.X, pady=(8, 0))
 
         params_frame = ttk.LabelFrame(left_panel, text="Parâmetros", padding=10)
         params_frame.pack(fill=tk.X, pady=(0, 15))
@@ -1071,9 +1201,12 @@ class VentricleSegmentationApp:
 
             self.original_image = image.copy()
             self.current_image = image
+            self.current_image_path = path
             self.result_image = None
             self.contours = None
             self.descriptors = None
+            self.last_model_prediction = None
+            self.last_model_probability = None
 
             self.display_image(image)
             self.update_info(f"Imagem: {os.path.basename(path)} | Shape: {image.shape}")
@@ -1128,9 +1261,12 @@ class VentricleSegmentationApp:
 
             self.original_image = image.copy()
             self.current_image = image
+            self.current_image_path = path
             self.result_image = None
             self.contours = None
             self.descriptors = None
+            self.last_model_prediction = None
+            self.last_model_probability = None
 
             self.display_image(image)
             filename = os.path.basename(path)
@@ -1225,6 +1361,8 @@ class VentricleSegmentationApp:
             self.result_image = result
             self.contours = largest
             self.descriptors = calculate_descriptors(largest if largest else [])
+
+            self.run_default_model_prediction()
 
             self.display_image(result)
             self.update_descriptors()
@@ -1447,16 +1585,24 @@ class VentricleSegmentationApp:
         if not path:
             return
 
+        image_name = os.path.basename(self.current_image_path) if self.current_image_path else ""
+
         self.descriptors["Filename"] = os.path.basename(path)
+        self.descriptors["Imagem"] = image_name
+        self.descriptors["Modelo_predicao"] = self.last_model_prediction if self.last_model_prediction is not None else ""
+        self.descriptors["Modelo_proba_classe1"] = self.last_model_probability if self.last_model_probability is not None else ""
 
         colunas = [
             "Filename",
+            "Imagem",
             "total_area",
             "avg_circularity",
             "eccentricity",
             "total_perimeter",
             "avg_solidity",
-            "avg_aspect_ratio"
+            "avg_aspect_ratio",
+            "Modelo_predicao",
+            "Modelo_proba_classe1"
         ]
 
         df = pd.DataFrame([self.descriptors], columns=colunas)
@@ -1472,6 +1618,66 @@ class VentricleSegmentationApp:
         )
 
         messagebox.showinfo("Info", f"Descritores salvos em:\n{path}")
+
+    def run_default_model_prediction(self):
+        """
+        Executa automaticamente o classificador baseado apenas em métricas
+        sempre que a segmentação é concluída e armazena o resultado para
+        exportação.
+        """
+
+        if self.descriptors is None:
+            return
+
+        models_dir = os.path.join(os.path.dirname(__file__), 'modelos')
+        default_model = 'classifier_metrics_only.pkl'
+        model_path = os.path.join(models_dir, default_model)
+
+        if not os.path.exists(model_path):
+            self.last_model_prediction = None
+            self.last_model_probability = None
+            return
+
+        try:
+            if model_path in self.loaded_models:
+                model = self.loaded_models[model_path]
+            else:
+                model = joblib.load(model_path)
+                self.loaded_models[model_path] = model
+        except Exception:
+            self.last_model_prediction = None
+            self.last_model_probability = None
+            return
+
+        feature_order = [
+            'total_area',
+            'avg_circularity',
+            'eccentricity',
+            'total_perimeter',
+            'avg_solidity',
+            'avg_aspect_ratio'
+        ]
+
+        try:
+            x = np.array([[self.descriptors[f] for f in feature_order]], dtype=float)
+        except KeyError:
+            self.last_model_prediction = None
+            self.last_model_probability = None
+            return
+
+        try:
+            y_pred = model.predict(x)[0]
+            proba = None
+            if hasattr(model, "predict_proba"):
+                probas = model.predict_proba(x)[0]
+                if len(probas) > 1:
+                    proba = float(probas[1])
+
+            self.last_model_prediction = int(y_pred) if str(y_pred).isdigit() else y_pred
+            self.last_model_probability = proba if proba is not None else ""
+        except Exception:
+            self.last_model_prediction = None
+            self.last_model_probability = None
 
     def show_scatterplots(self):
         if self.dataset_df is None:
