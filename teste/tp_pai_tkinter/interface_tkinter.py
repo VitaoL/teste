@@ -340,6 +340,60 @@ class VentricleSegmentationApp:
         if messagebox.askyesno("Modelo", msg):
             self.run_model_on_current_image(model_type, full_path)
 
+    def open_models_dialog(self):
+        classifiers, regressors = self.get_model_files()
+
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Modelos")
+        dialog.configure(bg=self.colors['bg_dark'])
+
+        container = tk.Frame(dialog, bg=self.colors['bg_dark'])
+        container.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+
+        def add_section(title_text, items, model_type):
+            frame = ttk.LabelFrame(container, text=title_text, padding=10)
+            frame.pack(fill=tk.X, pady=(0, 10))
+
+            if not items:
+                tk.Label(
+                    frame,
+                    text="Nenhum arquivo encontrado.",
+                    bg=self.colors['bg_dark'],
+                    fg=self.colors['fg_secondary'],
+                    anchor=tk.W
+                ).pack(fill=tk.X)
+                return
+
+            for name in items:
+                btn = tk.Button(
+                    frame,
+                    text=name,
+                    command=lambda n=name: self.show_model_details(model_type, n),
+                    bg=self.colors['bg_light'],
+                    fg=self.colors['fg_primary'],
+                    relief=tk.FLAT,
+                    cursor='hand2',
+                    anchor=tk.W,
+                    padx=10,
+                    pady=6
+                )
+                btn.pack(fill=tk.X, pady=2)
+
+        add_section("Classificadores", classifiers, "Classificador")
+        add_section("Regressores", regressors, "Regressor")
+
+        tk.Button(
+            container,
+            text="Fechar",
+            command=dialog.destroy,
+            bg=self.colors['accent_red'],
+            fg=self.colors['fg_primary'],
+            relief=tk.FLAT,
+            cursor='hand2',
+            padx=12,
+            pady=8
+        ).pack(pady=(10, 0))
+
     def adjust_regression_value(self, model_path, value):
         """Aplicar ajuste específico conforme o regressor utilizado."""
         try:
@@ -394,13 +448,9 @@ class VentricleSegmentationApp:
             messagebox.showerror("Erro", f"Erro ao carregar modelo:\n{str(e)}{extra_tip}")
             return
 
-        if load_warnings and self.root and self.root.winfo_exists():
+        if load_warnings:
             formatted = "\n- " + "\n- ".join(load_warnings)
-            messagebox.showwarning(
-                "Avisos ao carregar modelo",
-                "Foram emitidos avisos ao abrir o modelo:" + formatted,
-                parent=self.root
-            )
+            print("[Avisos modelo]" + formatted)
 
         if is_pytorch:
             img = self.result_image if self.result_image is not None else self.current_image
@@ -511,13 +561,9 @@ class VentricleSegmentationApp:
             messagebox.showerror("Erro", f"Erro na predição:\n{str(e)}")
             return
 
-        if predict_warnings and self.root and self.root.winfo_exists():
+        if predict_warnings:
             formatted = "\n- " + "\n- ".join(predict_warnings)
-            messagebox.showwarning(
-                "Avisos na predição",
-                "Foram emitidos avisos durante a predição:" + formatted,
-                parent=self.root
-            )
+            print("[Avisos predição]" + formatted)
 
         if model_type.lower().startswith("class"):
             if int(y_pred) == 1:
@@ -527,9 +573,6 @@ class VentricleSegmentationApp:
         else:
             adjusted_pred = self.adjust_regression_value(model_path, y_pred)
             resultado_texto = f"Valor previsto: {float(adjusted_pred):.3f}"
-
-        if not (self.root and self.root.winfo_exists()):
-            return
 
         if not (self.root and self.root.winfo_exists()):
             return
@@ -674,10 +717,21 @@ class VentricleSegmentationApp:
         )
         btn_segment.pack(fill=tk.X, pady=(10, 0))
 
+        open_models_callback = getattr(self, "open_models_dialog", None)
+        if open_models_callback is None:
+            def _missing_models_dialog():
+                messagebox.showerror(
+                    "Modelos",
+                    "Ação de modelos indisponível no momento."
+                )
+
+            open_models_callback = _missing_models_dialog
+            self.open_models_dialog = open_models_callback
+
         btn_models = tk.Button(
             method_frame,
             text="Modelos",
-            command=self.open_models_dialog,
+            command=open_models_callback,
             bg=self.colors['accent_blue'],
             fg=self.colors['fg_primary'],
             font=('Arial', 10, 'bold'),
